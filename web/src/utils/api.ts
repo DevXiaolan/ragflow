@@ -6,6 +6,7 @@ export { api_host };
 export default {
   // user
   login: `${api_host}/user/login`,
+  fast_pass: `${api_host}/user/fast_pass`,
   logout: `${api_host}/user/logout`,
   register: `${api_host}/user/register`,
   setting: `${api_host}/user/setting`,

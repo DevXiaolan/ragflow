@@ -45,6 +45,7 @@ from api.utils.api_utils import (
     get_json_result,
     server_error_response,
     validate_request,
+    request as http_request,
 )
 
 
@@ -148,6 +149,121 @@ def oauth_login(channel):
     auth_url = auth_cli.get_authorization_url(state)
     return redirect(auth_url)
 
+
+def fetch_eteams_account(eteams_token: str):
+    """
+    调用 E-Teams FreePass 接口，用 eteams_token 获取邮箱或手机号。
+
+    返回:
+        (code, account, message)
+        code == settings.RetCode.SUCCESS 表示成功，email 不为空；否则 message 为错误信息。
+    """
+    eteams_conf = settings.ETEAMS_CONF or {}
+    api_url = eteams_conf.get("freepass_url")
+    if not api_url:
+        return settings.RetCode.SERVER_ERROR, None, "ETEAMS freepass is not configured"
+
+    try:
+        # 约定使用 POST + query 参数，参数名为 eteams_token
+        resp = http_request(method="POST", url=api_url, params={"eteams_token": eteams_token}, timeout=10)
+        if resp.status_code != 200:
+            return settings.RetCode.AUTHENTICATION_ERROR, None, f"eteams verify failed: http {resp.status_code}"
+
+        ext = resp.json() or {}
+        account = ext.get("email") or ext.get("mobile")
+        if not account:
+            return settings.RetCode.AUTHENTICATION_ERROR, None, "eteams verify failed: account missing"
+        # 如果account不是邮箱格式，强行加上 @mobile.com
+        if not re.match(r"^[\w\._-]+@([\w_-]+\.)+[\w-]{2,}$", account):
+            account = f"{account}@mobile.com"
+        return settings.RetCode.SUCCESS, account, None
+    except Exception as e:
+        logging.exception(e)
+        return settings.RetCode.EXCEPTION_ERROR, None, str(e)
+
+
+@manager.route("/fast_pass", methods=["POST"])  # noqa: F821
+def fast_pass():
+    """
+    Fast pass via eteams token.
+    ---
+    tags:
+      - User
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            eteams_token:
+              type: string
+              description: eteams temporary token
+    responses:
+      200:
+        description: Login successful.
+        schema:
+          type: object
+    """
+    try:
+        req = request.json or {}
+        eteams_token = req.get("eteams_token")
+        if not eteams_token:
+            return get_json_result(
+                data=False,
+                code=settings.RetCode.ARGUMENT_ERROR,
+                message="eteams_token is required",
+            )
+
+        # 调用封装方法获取 email
+        code, email, msg = fetch_eteams_account(eteams_token)
+        if code != settings.RetCode.SUCCESS:
+            return get_json_result(data=False, code=code, message=msg)
+
+        users = UserService.query(email=email)
+        if not users:
+            # register new user with random password
+            user_id = get_uuid()
+            nickname = email.split("@")[0]
+            rand_pwd = secrets.token_urlsafe(16)
+            user_dict = {
+                "access_token": get_uuid(),
+                "email": email,
+                "nickname": nickname,
+                "password": rand_pwd,
+                "login_channel": "eteams",
+                "last_login_time": get_format_time(),
+                "is_superuser": False,
+            }
+            users = user_register(user_id, user_dict)
+            if not users:
+                return get_json_result(
+                    data=False,
+                    code=settings.RetCode.SERVER_ERROR,
+                    message=f"register user failed: {email}",
+                )
+            if len(users) > 1:
+                return get_json_result(
+                    data=False,
+                    code=settings.RetCode.SERVER_ERROR,
+                    message=f"duplicate email: {email}",
+                )
+
+        user = users[0]
+        login_user(user)
+        response_data = user.to_json()
+        user.access_token = get_uuid()
+        user.update_time = (current_timestamp(),)
+        user.update_date = (datetime_format(datetime.now()),)
+        user.save()
+        return construct_response(data=response_data, auth=user.get_id(), message="Fast login success")
+    except Exception as e:
+        logging.exception(e)
+        return get_json_result(
+            data=False,
+            code=settings.RetCode.EXCEPTION_ERROR,
+            message=f"Fast login error: {str(e)}",
+        )
 
 @manager.route("/oauth/callback/<channel>", methods=["GET"])  # noqa: F821
 def oauth_callback(channel):
