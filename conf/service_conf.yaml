@@ -127,6 +127,6 @@ redis:
 eteams:
   # 请替换为你们实际的 E-Teams FreePass 校验接口完整 URL
   # 后端会使用 GET 调用：{freepass_url}?eteams_token=<token>
-  freepass_url: 'http://47.108.137.101:10600/papi/openapi/oauth2/getUserInfo'
+  freepass_url: 'http://{HOST_ADDRESS}/papi/openapi/oauth2/getUserInfo'
   # 指定所有 eteams 用户共享的账户邮箱
-  shared_account_email: 'admin@lanhao.name'
+  shared_account_email: 'shared@eteams.com'
