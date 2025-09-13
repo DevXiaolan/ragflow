@@ -185,7 +185,7 @@ def fetch_eteams_account(eteams_token: str):
 @manager.route("/fast_pass", methods=["POST"])  # noqa: F821
 def fast_pass():
     """
-    Fast pass via eteams token.
+    Fast pass via eteams token - all eteams users share the same account.
     ---
     tags:
       - User
@@ -215,23 +215,34 @@ def fast_pass():
                 message="eteams_token is required",
             )
 
-        # 调用封装方法获取 email
-        code, email, msg = fetch_eteams_account(eteams_token)
+        # 验证 eteams_token 是否有效（但不使用返回的账户信息）
+        code, _, msg = fetch_eteams_account(eteams_token)
         if code != settings.RetCode.SUCCESS:
             return get_json_result(data=False, code=code, message=msg)
 
-        users = UserService.query(email=email)
+        # 获取配置的共享账户邮箱
+        eteams_conf = settings.ETEAMS_CONF or {}
+        shared_email = eteams_conf.get("shared_account_email")
+        if not shared_email:
+            return get_json_result(
+                data=False,
+                code=settings.RetCode.SERVER_ERROR,
+                message="ETEAMS shared account is not configured",
+            )
+
+        # 查找或创建共享账户
+        users = UserService.query(email=shared_email)
         if not users:
-            # register new user with random password
+            # 如果共享账户不存在，创建它
             user_id = get_uuid()
-            nickname = email.split("@")[0]
+            nickname = shared_email.split("@")[0]
             rand_pwd = secrets.token_urlsafe(16)
             user_dict = {
                 "access_token": get_uuid(),
-                "email": email,
+                "email": shared_email,
                 "nickname": nickname,
                 "password": rand_pwd,
-                "login_channel": "eteams",
+                "login_channel": "eteams_shared",
                 "last_login_time": get_format_time(),
                 "is_superuser": False,
             }
@@ -240,13 +251,13 @@ def fast_pass():
                 return get_json_result(
                     data=False,
                     code=settings.RetCode.SERVER_ERROR,
-                    message=f"register user failed: {email}",
+                    message=f"create shared account failed: {shared_email}",
                 )
             if len(users) > 1:
                 return get_json_result(
                     data=False,
                     code=settings.RetCode.SERVER_ERROR,
-                    message=f"duplicate email: {email}",
+                    message=f"duplicate shared email: {shared_email}",
                 )
 
         user = users[0]

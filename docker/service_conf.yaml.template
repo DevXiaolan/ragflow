@@ -6,7 +6,7 @@ mysql:
   user: '${MYSQL_USER:-root}'
   password: '${MYSQL_PASSWORD:-infini_rag_flow}'
   host: '${MYSQL_HOST:-mysql}'
-  port: 3306
+  port: 5455
   max_connections: 900
   stale_timeout: 300
   max_allowed_packet: ${MYSQL_MAX_PACKET:-1073741824}
@@ -15,7 +15,7 @@ minio:
   password: '${MINIO_PASSWORD:-infini_rag_flow}'
   host: '${MINIO_HOST:-minio}:9000'
 es:
-  hosts: 'http://${ES_HOST:-es01}:9200'
+  hosts: 'http://${ES_HOST:-es01}:1200'
   username: '${ES_USER:-elastic}'
   password: '${ELASTIC_PASSWORD:-infini_rag_flow}'
 os:
@@ -130,3 +130,10 @@ redis:
 #     - "RAGFlow" # display name
 #     - "" # sender email address
 #   mail_frontend_url: "https://your-frontend.example.com"
+
+# eteams:
+#   # E-Teams FreePass校验接口完整URL，例如：
+#   # https://weapp.eteams.cn/api/xxx/freepass/verify
+#   freepass_url: ''
+#   # 指定所有 eteams 用户共享的账户邮箱
+#   shared_account_email: 'shared@eteams.com'
