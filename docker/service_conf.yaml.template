@@ -130,3 +130,10 @@ redis:
 #     - "RAGFlow" # display name
 #     - "" # sender email address
 #   mail_frontend_url: "https://your-frontend.example.com"
+
+# eteams:
+#   # E-Teams FreePass校验接口完整URL，例如：
+#   # https://weapp.eteams.cn/api/xxx/freepass/verify
+#   freepass_url: ''
+#   # 指定所有 eteams 用户共享的账户邮箱
+#   shared_account_email: 'shared@eteams.com'

@@ -4,6 +4,7 @@ import request, { post } from '@/utils/request';
 
 const {
   login,
+  fast_pass,
   logout,
   register,
   setting,
@@ -29,6 +30,10 @@ const {
 const methods = {
   login: {
     url: login,
+    method: 'post',
+  },
+  fast_pass: {
+    url: fast_pass,
     method: 'post',
   },
   logout: {

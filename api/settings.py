@@ -89,6 +89,9 @@ MAIL_PASSWORD = ""
 MAIL_DEFAULT_SENDER = ()
 MAIL_FRONTEND_URL = ""
 
+# eteams freepass config
+ETEAMS_CONF = None
+
 
 def get_or_create_secret_key():
     secret_key = os.environ.get("RAGFLOW_SECRET_KEY")
@@ -162,7 +165,7 @@ def init_settings():
 
     SECRET_KEY = get_or_create_secret_key()
 
-    global AUTHENTICATION_CONF, CLIENT_AUTHENTICATION, HTTP_APP_KEY, GITHUB_OAUTH, FEISHU_OAUTH, OAUTH_CONFIG
+    global AUTHENTICATION_CONF, CLIENT_AUTHENTICATION, HTTP_APP_KEY, GITHUB_OAUTH, FEISHU_OAUTH, OAUTH_CONFIG, ETEAMS_CONF
     # authentication
     AUTHENTICATION_CONF = get_base_config("authentication", {})
 
@@ -173,6 +176,8 @@ def init_settings():
     FEISHU_OAUTH = get_base_config("oauth", {}).get("feishu")
 
     OAUTH_CONFIG = get_base_config("oauth", {})
+    # eteams freepass
+    ETEAMS_CONF = get_base_config("eteams", {})
 
     global DOC_ENGINE, docStoreConn, retrievaler, kg_retrievaler
     DOC_ENGINE = os.environ.get("DOC_ENGINE", "elasticsearch")

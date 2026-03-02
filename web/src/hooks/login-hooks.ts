@@ -81,6 +81,36 @@ export const useLogin = () => {
   return { data, loading, login: mutateAsync };
 };
 
+export const useFastPass = () => {
+  const { t } = useTranslation();
+  const { isPending: loading, mutateAsync } = useMutation({
+    mutationKey: ['fast_pass'],
+    mutationFn: async (params: { eteams_token: string }) => {
+      const { data: res = {}, response } = await userService.fast_pass(params);
+      if (res.code === 0) {
+        const { data } = res;
+        message.success(t('message.logged'));
+        const authorization = response.headers.get(Authorization);
+        const token = data.access_token;
+        const userInfo = {
+          avatar: data.avatar,
+          name: data.nickname,
+          email: data.email,
+        };
+        authorizationUtil.setItems({
+          Authorization: authorization,
+          userInfo: JSON.stringify(userInfo),
+          Token: token,
+        });
+      } else {
+        redirectToLogin();
+      }
+      return res.code;
+    },
+  });
+  return { loading, login: mutateAsync };
+};
+
 export const useRegister = () => {
   const { t } = useTranslation();
 
